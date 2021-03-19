@@ -1,4 +1,4 @@
-#if _DEBUG
+﻿#if _DEBUG
 #define _CRTDBG_MAP_ALLOC
 #include <crtdbg.h>
 #define new new(_NORMAL_BLOCK, __FILE__, __LINE__)
@@ -7,6 +7,8 @@
 
 
 #include <windows.h>
+#include <powrprof.h>
+#include <powersetting.h>
 #include "stdafx.h"
 #include "CPUFreq.h"
 #include <string>
@@ -15,8 +17,7 @@
 #include <comdef.h>
 #include <Wbemidl.h>
 #pragma comment(lib, "wbemuuid.lib")
-#include <powrprof.h>
-#include <powersetting.h>
+
 #pragma comment(lib, "powrprof.lib")
 
 
@@ -55,6 +56,7 @@ INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 int                 initWMIConnection();
 void                finalizeWMIConnection();
 void                clickPopMemu(int id);
+void changePowerPlan(int id);
 
 int initWMIConnection() {
     HRESULT hres = CoInitializeEx(0, COINIT_MULTITHREADED);
@@ -357,18 +359,44 @@ void clickPopMemu(int id) {
     switch (id) {
     case IDM_HIGH:
         //PowerSetActiveScheme(0, &GUID_MIN_POWER_SAVINGS);
+        changePowerPlan(id);
         break;
     case IDM_BALANCED:
         //PowerSetActiveScheme(0, &GUID_TYPICAL_POWER_SAVINGS);
+        changePowerPlan(id);
         break;
     case IDM_SAVE:
         //PowerSetActiveScheme(0, &GUID_MIN_POWER_SAVINGS);
+        changePowerPlan(id);
         break;
     }
+}
+void changePowerPlan(int id) {
+    STARTUPINFO si = { sizeof(STARTUPINFO) };
+    PROCESS_INFORMATION pi;
+    wchar_t path[] = L"C:\\Windows\\System32\\cmd.exe";
 
-    wstringstream wss;
-    wss << id << endl;
-    OutputDebugString(wss.str().c_str());
+    switch (id) {
+    case IDM_HIGH:
+        CreateProcess(path, L"C:\\Windows\\System32\\cmd.exe /K C:\\Windows\\System32\\powercfg.exe -setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c", NULL, NULL, false, CREATE_UNICODE_ENVIRONMENT, NULL, NULL, &si, &pi);
+        break;
+    case IDM_SAVE:
+        CreateProcess(path, L"C:\\Windows\\System32\\cmd.exe /K C:\\Windows\\System32\\powercfg.exe -setactive a1841308-3541-4fab-bc81-f71556f20b4a", NULL, NULL, false, CREATE_UNICODE_ENVIRONMENT, NULL, NULL, &si, &pi);
+        break;
+    default:
+        CreateProcess(path, L"C:\\Windows\\System32\\cmd.exe /K C:\\Windows\\System32\\powercfg.exe -setactive 381b4222-f694-41f0-9685-ff5bb260df2e", NULL, NULL, false, CREATE_UNICODE_ENVIRONMENT, NULL, NULL, &si, &pi);
+    }
+
+    if (::WaitForSingleObject(pi.hProcess, 500) == WAIT_TIMEOUT) {
+        TerminateProcess(pi.hProcess, 0);
+    }
+
+    CloseHandle(pi.hThread);
+    CloseHandle(pi.hProcess);
+
+    //wstringstream wss;
+    //wss << "aaaa" << endl;
+    //OutputDebugString(wss.str().c_str());
 }
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
     int wmId, wmEvent;
@@ -386,10 +414,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
                 uFlag |= MF_GRAYED;
             }
 
-            InsertMenu(hPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, IDM_HIGH, _T("High performance"));
-            InsertMenu(hPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING | MFS_CHECKED, IDM_BALANCED, _T("Balanced"));
-            InsertMenu(hPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, IDM_SAVE, _T("Power saver"));
-
+            InsertMenu(hPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, IDM_HIGH, _T("Power Plan : High performance"));
+            InsertMenu(hPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, IDM_BALANCED, _T("Power Plan : Balanced"));
+            InsertMenu(hPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, IDM_SAVE, _T("Power Plan : Power saver"));
 
             InsertMenu(hPopMenu, 0xFFFFFFFF, MF_SEPARATOR, IDM_SEP, _T("SEP"));
             //InsertMenu(hPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, IDM_ABOUT, _T("About"));
