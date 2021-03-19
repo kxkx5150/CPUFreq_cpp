@@ -15,13 +15,11 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Hebrew resources
+// 英語 resources
 
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_HEB)
-#ifdef _WIN32
-LANGUAGE LANG_HEBREW, SUBLANG_DEFAULT
-#pragma code_page(1255)
-#endif //_WIN32
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_NEUTRAL
+#pragma code_page(1252)
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -30,15 +28,73 @@ LANGUAGE LANG_HEBREW, SUBLANG_DEFAULT
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_SYSTRAYDEMO         ICON                    "CPUFreq.ico"
 IDI_SMALL               ICON                    "small.ico"
+
+MYICON ICON DISCARDABLE "cpu.ico"
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUTBOX DIALOGEX 22, 17, 118, 102
+STYLE DS_SETFONT | DS_MODALFRAME | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_TOPMOST
+CAPTION "About"
+FONT 12, "Consolas", 400, 0, 0x80
+BEGIN
+    CTEXT           "CPUFreq",IDC_STATIC,19,4,77,8,SS_NOPREFIX
+    CTEXT           "Copyright (C) 2021",IDC_STATIC,19,17,80,8
+    DEFPUSHBUTTON   "Set Windows StartUp",IDOK,7,82,102,11,WS_GROUP
+    CTEXT           "Kunihiro Ando",IDC_STATIC,20,28,72,8
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+        RIGHTMARGIN, 116
+        BOTTOMMARGIN, 101
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_APP_TITLE           "CPUFreq"
+    IDS_APPTOOLTIP          "CPUFreq"
+    IDC_SYSTRAYDEMO         "CPUFreq"
+END
+
+#endif    // 英語 resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// ヘブライ語 (イスラエル) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_HEB)
+LANGUAGE LANG_HEBREW, SUBLANG_DEFAULT
+#pragma code_page(1255)
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Menu
 //
 
-IDC_SYSTRAYDEMO MENU 
+IDC_SYSTRAYDEMO MENU
 BEGIN
     POPUP "SysTrayMenu"
     BEGIN
@@ -60,28 +116,10 @@ END
 // Accelerator
 //
 
-IDC_SYSTRAYDEMO ACCELERATORS 
+IDC_SYSTRAYDEMO ACCELERATORS
 BEGIN
     "?",            IDM_ABOUT,              ASCII,  ALT
     "/",            IDM_ABOUT,              ASCII,  ALT
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Dialog
-//
-
-IDD_ABOUTBOX DIALOGEX 22, 17, 230, 75
-STYLE DS_SETFONT | DS_MODALFRAME | WS_CAPTION | WS_SYSMENU
-CAPTION "About"
-FONT 8, "System", 0, 0, 0x0
-BEGIN
-    ICON            IDI_SYSTRAYDEMO,IDC_MYICON,14,9,20,20
-    LTEXT           "CPUFreq Version 1.0",IDC_STATIC,49,10,119,8,SS_NOPREFIX
-    LTEXT           "Copyright (C) 2021",IDC_STATIC,49,20,119,8
-    DEFPUSHBUTTON   "OK",IDOK,195,6,30,11,WS_GROUP
-    LTEXT           "Kunihiro Ando",IDC_STATIC,49,31,108,8
 END
 
 
@@ -112,20 +150,7 @@ END
 
 #endif    // APSTUDIO_INVOKED
 
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// String Table
-//
-
-STRINGTABLE 
-BEGIN
-    IDS_APP_TITLE           "CPUFreq"
-    IDS_APPTOOLTIP          "CPUFreq"
-    IDC_SYSTRAYDEMO         "CPUFreq"
-END
-
-#endif    // Hebrew resources
+#endif    // ヘブライ語 (イスラエル) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

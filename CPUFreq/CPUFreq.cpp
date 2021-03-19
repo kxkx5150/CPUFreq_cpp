@@ -4,8 +4,6 @@
 #define new new(_NORMAL_BLOCK, __FILE__, __LINE__)
 #endif
 
-
-
 #include <windows.h>
 #include <powrprof.h>
 #include <powersetting.h>
@@ -17,19 +15,11 @@
 #include <comdef.h>
 #include <Wbemidl.h>
 #pragma comment(lib, "wbemuuid.lib")
-
 #pragma comment(lib, "powrprof.lib")
-
 
 #define MAX_LOADSTRING 100
 #define	WM_USER_SHELLICON WM_USER + 1
 #define _WIN32_DCOM
-
-
-
-
-
-
 
 using namespace std;
 
@@ -42,7 +32,6 @@ TCHAR szApplicationToolTip[MAX_LOADSTRING];
 BOOL bDisable = FALSE;
 IWbemLocator* pLoc = NULL;
 IWbemServices* pSvc = NULL;
-
 double cpuMaxFreq = 0;
 
 ATOM				MyRegisterClass(HINSTANCE hInstance);
@@ -55,8 +44,9 @@ LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 int                 initWMIConnection();
 void                finalizeWMIConnection();
-void                clickPopMemu(int id);
-void changePowerPlan(int id);
+void                changePowerPlan(int id);
+void                createContextMenu();
+int setStartUp(void);
 
 int initWMIConnection() {
     HRESULT hres = CoInitializeEx(0, COINIT_MULTITHREADED);
@@ -323,6 +313,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow) {
     nidApp.hIcon = icon;
     nidApp.uCallbackMessage = WM_USER_SHELLICON;
     LoadString(hInstance, IDS_APPTOOLTIP, nidApp.szTip, MAX_LOADSTRING);
+    createContextMenu();
     Shell_NotifyIcon(NIM_ADD, &nidApp);
     SetTimer(hWnd, 1, 1000, NULL);
     DestroyIcon(icon);
@@ -355,22 +346,6 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstanc
     }
     return (int)msg.wParam;
 }
-void clickPopMemu(int id) {
-    switch (id) {
-    case IDM_HIGH:
-        //PowerSetActiveScheme(0, &GUID_MIN_POWER_SAVINGS);
-        changePowerPlan(id);
-        break;
-    case IDM_BALANCED:
-        //PowerSetActiveScheme(0, &GUID_TYPICAL_POWER_SAVINGS);
-        changePowerPlan(id);
-        break;
-    case IDM_SAVE:
-        //PowerSetActiveScheme(0, &GUID_MIN_POWER_SAVINGS);
-        changePowerPlan(id);
-        break;
-    }
-}
 void changePowerPlan(int id) {
     STARTUPINFO si = { sizeof(STARTUPINFO) };
     PROCESS_INFORMATION pi;
@@ -378,12 +353,21 @@ void changePowerPlan(int id) {
 
     switch (id) {
     case IDM_HIGH:
+        CheckMenuItem(hPopMenu, IDM_HIGH, MFS_CHECKED);
+        CheckMenuItem(hPopMenu, IDM_BALANCED, MFS_UNCHECKED);
+        CheckMenuItem(hPopMenu, IDM_SAVE, MFS_UNCHECKED);
         CreateProcess(path, L"C:\\Windows\\System32\\cmd.exe /K C:\\Windows\\System32\\powercfg.exe -setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c", NULL, NULL, false, CREATE_UNICODE_ENVIRONMENT, NULL, NULL, &si, &pi);
         break;
     case IDM_SAVE:
+        CheckMenuItem(hPopMenu, IDM_HIGH, MFS_UNCHECKED);
+        CheckMenuItem(hPopMenu, IDM_BALANCED, MFS_UNCHECKED);
+        CheckMenuItem(hPopMenu, IDM_SAVE, MFS_CHECKED);
         CreateProcess(path, L"C:\\Windows\\System32\\cmd.exe /K C:\\Windows\\System32\\powercfg.exe -setactive a1841308-3541-4fab-bc81-f71556f20b4a", NULL, NULL, false, CREATE_UNICODE_ENVIRONMENT, NULL, NULL, &si, &pi);
         break;
     default:
+        CheckMenuItem(hPopMenu, IDM_HIGH, MFS_UNCHECKED);
+        CheckMenuItem(hPopMenu, IDM_BALANCED, MFS_CHECKED);
+        CheckMenuItem(hPopMenu, IDM_SAVE, MFS_UNCHECKED);
         CreateProcess(path, L"C:\\Windows\\System32\\cmd.exe /K C:\\Windows\\System32\\powercfg.exe -setactive 381b4222-f694-41f0-9685-ff5bb260df2e", NULL, NULL, false, CREATE_UNICODE_ENVIRONMENT, NULL, NULL, &si, &pi);
     }
 
@@ -393,39 +377,63 @@ void changePowerPlan(int id) {
 
     CloseHandle(pi.hThread);
     CloseHandle(pi.hProcess);
+}
+void createContextMenu() {
+    hPopMenu = CreatePopupMenu();
+    InsertMenu(hPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING | MFS_UNCHECKED, IDM_HIGH, _T("Power Plan : High performance"));
+    InsertMenu(hPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING | MFS_UNCHECKED, IDM_BALANCED, _T("Power Plan : Balanced"));
+    InsertMenu(hPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING | MFS_UNCHECKED, IDM_SAVE, _T("Power Plan : Power saver"));
+    InsertMenu(hPopMenu, 0xFFFFFFFF, MF_SEPARATOR, IDM_SEP, _T("SEP"));
+    InsertMenu(hPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, IDM_ABOUT, _T("About"));
+    InsertMenu(hPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, IDM_EXIT, _T("Exit"));
+}
+int setStartUp(void) {
+    TCHAR szPath[MAX_PATH];
+    DWORD pathLen = 0;
+    pathLen = GetModuleFileName(NULL, szPath, MAX_PATH);
+    if (pathLen == 0)     {
+        OutputDebugString(L"Error1");
+        return -1;
+    }
+    HKEY newValue;
+    if (RegOpenKey(HKEY_CURRENT_USER,
+        TEXT("Software\\Microsoft\\Windows\\CurrentVersion\\Run"),
+        &newValue) != ERROR_SUCCESS)     {
+        OutputDebugString(L"Error2");
+        return -1;
+    }
+    DWORD pathLenInBytes = pathLen * sizeof(*szPath);
+    if (RegSetValueEx(newValue,
+        TEXT("CPU_Freq_cpp"),
+        0,
+        REG_SZ,
+        (LPBYTE)szPath,
+        pathLenInBytes) != ERROR_SUCCESS)     {
+        RegCloseKey(newValue);
+        return -1;
+    }
 
-    //wstringstream wss;
-    //wss << "aaaa" << endl;
-    //OutputDebugString(wss.str().c_str());
+    RegCloseKey(newValue);
+
+    return 0;
 }
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
     int wmId, wmEvent;
     POINT lpClickPoint;
 
     switch (message) {
-
     case WM_USER_SHELLICON:
         switch (LOWORD(lParam)) {
         case WM_RBUTTONDOWN:
             UINT uFlag = MF_BYPOSITION | MF_STRING;
             GetCursorPos(&lpClickPoint);
-            hPopMenu = CreatePopupMenu();
             if (bDisable == TRUE) {
                 uFlag |= MF_GRAYED;
             }
 
-            InsertMenu(hPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, IDM_HIGH, _T("Power Plan : High performance"));
-            InsertMenu(hPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, IDM_BALANCED, _T("Power Plan : Balanced"));
-            InsertMenu(hPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, IDM_SAVE, _T("Power Plan : Power saver"));
-
-            InsertMenu(hPopMenu, 0xFFFFFFFF, MF_SEPARATOR, IDM_SEP, _T("SEP"));
-            //InsertMenu(hPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, IDM_ABOUT, _T("About"));
-            InsertMenu(hPopMenu, 0xFFFFFFFF, MF_BYPOSITION | MF_STRING, IDM_EXIT, _T("Exit"));
-
             SetForegroundWindow(hWnd);
             TrackPopupMenu(hPopMenu, TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_BOTTOMALIGN, lpClickPoint.x, lpClickPoint.y, 0, hWnd, NULL);
             return TRUE;
-
         }
         break;
     case WM_TIMER:
@@ -437,13 +445,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         switch (wmId) {
 
         case IDM_HIGH:
-            clickPopMemu(IDM_HIGH);
+            changePowerPlan(IDM_HIGH);
             break;
         case IDM_BALANCED:
-            clickPopMemu(IDM_BALANCED);
+            changePowerPlan(IDM_BALANCED);
             break;
         case IDM_SAVE:
-            clickPopMemu(IDM_SAVE);
+            changePowerPlan(IDM_SAVE);
             break;
         case IDM_ABOUT:
             DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
@@ -473,6 +481,14 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
 
     case WM_COMMAND:
         if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL) {
+            if (LOWORD(wParam) == IDOK) {
+                setStartUp();
+
+                //wstringstream wss;
+                //wss << "aaaa" << endl;
+                //OutputDebugString(wss.str().c_str());
+            }
+
             EndDialog(hDlg, LOWORD(wParam));
             return (INT_PTR)TRUE;
         }
