@@ -1,3 +1,9 @@
+#if _DEBUG
+#define _CRTDBG_MAP_ALLOC
+#include <crtdbg.h>
+#define new new(_NORMAL_BLOCK, __FILE__, __LINE__)
+#endif
+
 #include "stdafx.h"
 #include "CPUFreq.h"
 #include <string>
@@ -13,17 +19,6 @@
 
 using namespace std;
 
-ATOM				MyRegisterClass(HINSTANCE hInstance);
-BOOL				InitInstance(HINSTANCE, int);
-HICON               CreateTextIcon(HWND hWnd);
-HICON               CreateImageIcon(COLORREF iconColor, int freq, int usage, int mem);
-void                ChangeIcon();
-double              GetCPUFrequecyPercent();
-double              GetCPUMaxFrequecy();
-double              GetCPUFrequency();
-LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
-
 HINSTANCE hInst;
 NOTIFYICONDATA nidApp;
 HMENU hPopMenu;
@@ -31,20 +26,22 @@ TCHAR szTitle[MAX_LOADSTRING];
 TCHAR szWindowClass[MAX_LOADSTRING];
 TCHAR szApplicationToolTip[MAX_LOADSTRING];
 BOOL bDisable = FALSE;
-double cpuMaxFreq = GetCPUMaxFrequecy();
+IWbemLocator* pLoc = NULL;
+double cpuMaxFreq = 0;
 
-double GetCPUFrequency() {
-	double cpufreq = GetCPUFrequecyPercent() * cpuMaxFreq / 100;
-	wstringstream wss;
-	wss << cpufreq;
-	OutputDebugString(wss.str().c_str());
-	OutputDebugString(_T("\n"));
-	return 0;
-}
-double GetCPUFrequecyPercent() {
-	HRESULT hres;
+ATOM				MyRegisterClass(HINSTANCE hInstance);
+BOOL				InitInstance(HINSTANCE, int);
+HICON               CreateTextIcon(HWND hWnd);
+HICON               CreateImageIcon(COLORREF iconColor, int freq, int usage, int mem);
+void                ChangeIcon();
+double              GetCPUFrequecyPercent();
+double              GetCPUMaxFrequecy();
+LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
+int                 initWMIConnection();
 
-	hres = CoInitializeEx(0, COINIT_MULTITHREADED);
+int initWMIConnection() {
+	 HRESULT hres = CoInitializeEx(0, COINIT_MULTITHREADED);
 	if (FAILED(hres)) {
 		return 0;
 	}
@@ -64,7 +61,7 @@ double GetCPUFrequecyPercent() {
 		CoUninitialize();
 		return 0;
 	}
-	IWbemLocator* pLoc = NULL;
+	//IWbemLocator* pLoc = NULL;
 	hres = CoCreateInstance(
 		CLSID_WbemLocator,
 		0,
@@ -75,6 +72,9 @@ double GetCPUFrequecyPercent() {
 		CoUninitialize();
 		return 0;
 	}
+}
+double GetCPUFrequecyPercent() {
+	HRESULT hres;
 	IWbemServices* pSvc = NULL;
 	hres = pLoc->ConnectServer(
 		_bstr_t(L"ROOT\\CIMV2"),
@@ -146,45 +146,13 @@ double GetCPUFrequecyPercent() {
 	}
 
 	pSvc->Release();
-	pLoc->Release();
+	//pLoc->Release();
 	pEnumerator->Release();
-	CoUninitialize();
+	//CoUninitialize();
 	return cpufreqs / cpucount;
 }
 double GetCPUMaxFrequecy() {
 	HRESULT hres;
-
-	hres = CoInitializeEx(0, COINIT_MULTITHREADED);
-	if (FAILED(hres)) {
-		return 0;
-	}
-	hres = CoInitializeSecurity(
-		NULL,
-		-1,
-		NULL,
-		NULL,
-		RPC_C_AUTHN_LEVEL_DEFAULT,
-		RPC_C_IMP_LEVEL_IMPERSONATE,
-		NULL,
-		EOAC_NONE,
-		NULL
-	);
-
-	if (FAILED(hres)) {
-		CoUninitialize();
-		return 0;
-	}
-	IWbemLocator* pLoc = NULL;
-	hres = CoCreateInstance(
-		CLSID_WbemLocator,
-		0,
-		CLSCTX_INPROC_SERVER,
-		IID_IWbemLocator, (LPVOID*)&pLoc);
-
-	if (FAILED(hres)) {
-		CoUninitialize();
-		return 0;
-	}
 	IWbemServices* pSvc = NULL;
 	hres = pLoc->ConnectServer(
 		_bstr_t(L"ROOT\\CIMV2"),
@@ -248,9 +216,9 @@ double GetCPUMaxFrequecy() {
 	}
 
 	pSvc->Release();
-	pLoc->Release();
+	//pLoc->Release();
 	pEnumerator->Release();
-	CoUninitialize();
+	//CoUninitialize();
 	return cpufreqs;
 }
 
@@ -290,10 +258,10 @@ void ChangeIcon() {
 	nidApp.hIcon = CreateImageIcon(0x0000FF00, f, u, m);
 	Shell_NotifyIcon(NIM_MODIFY, &nidApp);
 
-	wstringstream wss;
-	wss << m;
-	OutputDebugString(wss.str().c_str());
-	OutputDebugString(_T("\n"));
+	//wstringstream wss;
+	//wss << m;
+	//OutputDebugString(wss.str().c_str());
+	//OutputDebugString(_T("\n"));
 }
 HICON CreateImageIcon(COLORREF iconColor, int freq, int usage, int mem) {
 	HDC hdcScreen = GetDC(NULL);
@@ -412,6 +380,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow) {
 	if (!hWnd) {
 		return FALSE;
 	}
+	initWMIConnection();
+	cpuMaxFreq = GetCPUMaxFrequecy();
 	nidApp.cbSize = sizeof(NOTIFYICONDATA);
 	nidApp.hWnd = (HWND)hWnd;
 	nidApp.uID = IDI_SYSTRAYDEMO;
@@ -424,6 +394,10 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow) {
 	return TRUE;
 }
 int APIENTRY _tWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPTSTR lpCmdLine, _In_ int nCmdShow) {
+#if _DEBUG
+	_CrtSetDbgFlag(_CRTDBG_LEAK_CHECK_DF | _CRTDBG_ALLOC_MEM_DF);
+#endif
+
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 	MSG msg;
@@ -488,6 +462,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		}
 		break;
 	case WM_DESTROY:
+		pLoc->Release();
+		CoUninitialize();
 		PostQuitMessage(0);
 		break;
 	default:
