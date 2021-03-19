@@ -7,6 +7,13 @@
 #define IDS_APP_TITLE                   103
 #define IDD_ABOUTBOX                    103
 #define IDM_ABOUT                       104
+
+#define IDM_HIGH                        200
+#define IDM_BALANCED                    201
+#define IDM_SAVE                        202
+
+
+
 #define IDS_APPTOOLTIP                  104
 #define IDM_EXIT                        105
 #define IDI_SYSTRAYDEMO                 107
